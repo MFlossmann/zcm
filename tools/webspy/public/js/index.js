@@ -133,37 +133,33 @@ function playPauseToggle() {
 }
 
 function subscribe_all() {
-  setTimeout(function trySub() {
-    const zcmtypes = z.getZcmtypes();
-    if (!zcmtypes) return setTimeout(trySub, 100);
-    z.subscribe(
-      ".*",
-      Object.entries(zcmtypes).map(([k, v]) => ({ [k]: v })),
-      function(channel, msg) {
-        cv.handle(channel, msg);
-        if (channel in viewerChannelIdx) {
-          delete msg["__type"];
-          delete msg["__hash"];
-          viewers[viewerChannelIdx[channel]].updateViewer(msg);
-          viewers[viewerChannelIdx[channel]].showPanel();
-        }
 
-        if (channelChartMap[channel]) {
-          for (var i = 0; i < channelChartMap[channel].length; ++i) {
-            if (channelChartMap[channel][i]["chart"].isClosed()) {
-              channelChartMap[channel].splice(i, 1);
-              continue;
-            }
+  z.subscribe(".*", null, function(channel, msg) {
 
-            updateChart(channelChartMap[channel][i], msg, channel);
-          }
-        }
-      },
-      _sub => {
-        subscription = _sub;
+      cv.handle(channel, msg);
+
+      if (channel in viewerChannelIdx) {
+        delete msg["__type"];
+        delete msg["__hash"];
+        viewers[viewerChannelIdx[channel]].updateViewer(msg);
+        viewers[viewerChannelIdx[channel]].showPanel();
       }
-    );
-  }, 0);
+
+      if (channelChartMap[channel]) {
+        for (var i = 0; i < channelChartMap[channel].length; ++i) {
+          if (channelChartMap[channel][i]["chart"].isClosed()) {
+            channelChartMap[channel].splice(i, 1);
+            continue;
+          }
+
+          updateChart(channelChartMap[channel][i], msg, channel);
+        }
+      }
+    },
+    _sub => {
+      subscription = _sub;
+    }
+  );
 }
 
 onload = function() {

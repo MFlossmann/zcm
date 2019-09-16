@@ -8,6 +8,10 @@ function chartViewer(title) {
   this.chart = null;
   this.datasets = {};
 
+  this.aggregator;
+
+  const opts = { margin: { t: 0 } };
+
   this.createPanel = function() {
     var wrapper = $("<div />", { class: "chart-viewer" });
 
@@ -28,8 +32,10 @@ function chartViewer(title) {
 
   this.plot = function(utime, val, key, max) {
     if (!key) key = "__";
-    if (!(key in parent.datasets))
+    if (!(key in parent.datasets)) {
       parent.datasets[key] = { x: [], y: [], name: key };
+      Plotly.newPlot(parent.chart[0], [parent.datasets[key]], opts);
+    }
 
     parent.datasets[key]["x"].push(utime);
     parent.datasets[key]["y"].push(val);
@@ -44,8 +50,13 @@ function chartViewer(title) {
       return parent.datasets[key];
     });
 
-    var opts = { margin: { t: 0 } };
-
-    Plotly.newPlot(parent.chart[0], data, opts);
+    if (!parent.aggregator) {
+      parent.aggregator = setTimeout(
+        () => {
+          Plotly.update(parent.chart[0], data, opts);
+          parent.aggregator = null;
+        },
+        20);
+    }
   };
 }

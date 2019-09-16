@@ -123,7 +123,8 @@ function zcm(zcmtypes, zcmurl)
                 rehashTypes(zcmtypes[type]);
                 continue;
             }
-            zcmtypeHashMap[zcmtypes[type].__get_hash_recursive()] = zcmtypes[type];
+            const hash = zcmtypes[type].__get_hash_recursive();
+            zcmtypeHashMap[hash] = { __type: type, ...zcmtypes[type] };
         }
     }
     rehashTypes(zcmtypes);
@@ -167,21 +168,28 @@ function zcm(zcmtypes, zcmurl)
      */
     function subscribe(channel, _type, cb, successCb)
     {
-        console.log();
-      if (Array.isArray(_type)) {
-
-      }
-      else if (_type) {
+      if (_type) {
         // Note: this lookup is because the type that is given by a client doesn't have
         //       the necessary functions, so we need to look up our complete class here
         var hash = bigint.isInstance(_type.__hash) ?  _type.__hash.toString() : _type.__hash;
         var type = zcmtypeHashMap[hash];
         var sub = subscribe_raw(channel, function (channel, data) {
             var msg = type.decode(data)
-            if (msg != null) cb(channel, msg);
+            if (msg != null) cb(channel, msg, data);
         }, successCb);
       } else {
-        var sub = subscribe_raw(channel, cb, successCb);
+        var sub = subscribe_raw(channel, function (channel, data) {
+          const hash = bigint(ref.readUInt64BE(data, 0));
+          const type = zcmtypeHashMap[hash.toString()];
+          const msg = type ?
+            {
+              __type: type.__type,
+              __hash: hash,
+              ...type.decode(data)
+            } :
+            {};
+          cb(channel, msg, data);
+        }, successCb);
       }
     }
 

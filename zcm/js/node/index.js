@@ -167,18 +167,22 @@ function zcm(zcmtypes, zcmurl)
      */
     function subscribe(channel, _type, cb, successCb)
     {
-        if (_type) {
-            // Note: this lookup is because the type that is given by a client doesn't have
-            //       the necessary functions, so we need to look up our complete class here
-            var hash = bigint.isInstance(_type.__hash) ?  _type.__hash.toString() : _type.__hash;
-            var type = zcmtypeHashMap[hash];
-            var sub = subscribe_raw(channel, function (channel, data) {
-                var msg = type.decode(data)
-                if (msg != null) cb(channel, msg);
-            }, successCb);
-        } else {
-            var sub = subscribe_raw(channel, cb, successCb);
-        }
+        console.log();
+      if (Array.isArray(_type)) {
+
+      }
+      else if (_type) {
+        // Note: this lookup is because the type that is given by a client doesn't have
+        //       the necessary functions, so we need to look up our complete class here
+        var hash = bigint.isInstance(_type.__hash) ?  _type.__hash.toString() : _type.__hash;
+        var type = zcmtypeHashMap[hash];
+        var sub = subscribe_raw(channel, function (channel, data) {
+            var msg = type.decode(data)
+            if (msg != null) cb(channel, msg);
+        }, successCb);
+      } else {
+        var sub = subscribe_raw(channel, cb, successCb);
+      }
     }
 
     /**

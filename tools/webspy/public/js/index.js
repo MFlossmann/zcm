@@ -109,19 +109,19 @@ function updateChartHelper(chart, msg, channel, prefix)
     }
 }
 
-var subscriptions = [];
+var subscription;
 
 function playPauseToggle()
 {
-    if (subscriptions.length == 0) {
+    if (!subscription) {
         subscribe_all();
         $("#playPause").removeClass("btn-success");
         $("#playPause").addClass("btn-danger");
         $("#playPause").addClass("glyphicon-pause");
         $("#playPause").removeClass("glyphicon-play");
     } else {
-        z.unsubscribe(subscriptions[0]["subscription"]);
-        subscriptions = [];
+        z.unsubscribe(subscription);
+        subscription = null;
         $("#playPause").addClass("btn-success");
         $("#playPause").removeClass("btn-danger");
         $("#playPause").removeClass("glyphicon-pause");
@@ -131,27 +131,33 @@ function playPauseToggle()
 
 function subscribe_all()
 {
-    subscriptions.push({channel: ".*",
-                        subscription: z.subscribe_all(function(channel, msg){
-                            cv.handle(channel, msg);
-                            if (channel in viewerChannelIdx) {
-                                delete msg["__type"];
-                                delete msg["__hash"];
-                                viewers[viewerChannelIdx[channel]].updateViewer(msg);
-                                viewers[viewerChannelIdx[channel]].showPanel();
-                            }
+    setTimeout(function trySub() {
+      const zcmtypes = z.getZcmtypes();
+      if (!zcmtypes) return setTimeout(trySub, 100);
+      z.subscribe(
+        ".*",
+        Object.entries(zcmtypes).map(([k,v]) => ({ [k]: v })),
+        function(channel, msg) {
+          cv.handle(channel, msg);
+          if (channel in viewerChannelIdx) {
+              delete msg["__type"];
+              delete msg["__hash"];
+              viewers[viewerChannelIdx[channel]].updateViewer(msg);
+              viewers[viewerChannelIdx[channel]].showPanel();
+          }
 
-                            if (channelChartMap[channel]) {
-                                for (var i = 0; i < channelChartMap[channel].length; ++i) {
-                                    if (channelChartMap[channel][i]["chart"].isClosed()) {
-                                        channelChartMap[channel].splice(i, 1);
-                                        continue;
-                                    }
+          if (channelChartMap[channel]) {
+              for (var i = 0; i < channelChartMap[channel].length; ++i) {
+                  if (channelChartMap[channel][i]["chart"].isClosed()) {
+                      channelChartMap[channel].splice(i, 1);
+                      continue;
+                  }
 
-                                    updateChart(channelChartMap[channel][i], msg, channel);
-                                }
-                            }
-                        })});
+                  updateChart(channelChartMap[channel][i], msg, channel);
+              }
+          }
+      }, _sub => { subscription = _sub; });
+    }, 0);
 }
 
 onload = function()
